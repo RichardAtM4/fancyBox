@@ -1,7 +1,7 @@
 /*!
  * fancyBox - jQuery Plugin
  * version: 2.1.5 (Fri, 14 Jun 2013)
- * requires jQuery v1.6 or later
+ * @requires jQuery v1.6 or later
  *
  * Examples at http://fancyapps.com/fancybox/
  * License: www.fancyapps.com/fancybox/#license
@@ -10,7 +10,7 @@
  *
  */
 
-;(function (window, document, $, undefined) {
+(function (window, document, $, undefined) {
 	"use strict";
 
 	var H = $("html"),
@@ -143,8 +143,7 @@
 				error    : '<p class="fancybox-error">The requested content cannot be loaded.<br/>Please try again later.</p>',
 				closeBtn : '<a title="Close" class="fancybox-item fancybox-close" href="javascript:;"></a>',
 				next     : '<a title="Next" class="fancybox-nav fancybox-next" href="javascript:;"><span></span></a>',
-				prev     : '<a title="Previous" class="fancybox-nav fancybox-prev" href="javascript:;"><span></span></a>',
-				loading  : '<div id="fancybox-loading"><div></div></div>'
+				prev     : '<a title="Previous" class="fancybox-nav fancybox-prev" href="javascript:;"><span></span></a>'
 			},
 
 			// Properties for each animation type
@@ -262,7 +261,7 @@
 					if (isQuery(element)) {
 						obj = {
 							href    : element.data('fancybox-href') || element.attr('href'),
-							title   : $('<div/>').text( element.data('fancybox-title') || element.attr('title') || '' ).html(),
+							title   : element.data('fancybox-title') || element.attr('title'),
 							isDom   : true,
 							element : element
 						};
@@ -364,15 +363,11 @@
 		cancel: function () {
 			var coming = F.coming;
 
-			if (coming && false === F.trigger('onCancel')) {
+			if (!coming || false === F.trigger('onCancel')) {
 				return;
 			}
 
 			F.hideLoading();
-
-			if (!coming) {
-				return;
-			}
 
 			if (F.ajaxLoad) {
 				F.ajaxLoad.abort();
@@ -445,7 +440,7 @@
 				stop = function () {
 					clear();
 
-					D.unbind('.player');
+					D.off('.player');
 
 					F.player.isActive = false;
 
@@ -455,7 +450,7 @@
 					if (F.current && (F.current.loop || F.current.index < F.group.length - 1)) {
 						F.player.isActive = true;
 
-						D.bind({
+						D.on({
 							'onCancel.player beforeClose.player' : stop,
 							'onUpdate.player'   : set,
 							'beforeLoad.player' : clear
@@ -551,7 +546,7 @@
 		},
 
 		update: function (e) {
-			var type = (e && e.originalEvent && e.originalEvent.type),
+			var type = (e && e.type),
 				anyway = !type || type === 'orientationchange';
 
 			if (anyway) {
@@ -605,7 +600,7 @@
 		},
 
 		hideLoading: function () {
-			D.unbind('.loading');
+			D.off('.loading');
 
 			$('#fancybox-loading').remove();
 		},
@@ -615,10 +610,10 @@
 
 			F.hideLoading();
 
-			el = $(F.opts.tpl.loading).click(F.cancel).appendTo('body');
+			el = $('<div id="fancybox-loading"><div></div></div>').click(F.cancel).appendTo('body');
 
 			// If user will press the escape-button, the request will be canceled
-			D.bind('keydown.loading', function(e) {
+			D.on('keydown.loading', function(e) {
 				if ((e.which || e.keyCode) === 27) {
 					e.preventDefault();
 
@@ -635,8 +630,6 @@
 					left : (viewport.w * 0.5) + viewport.x
 				});
 			}
-
-			F.trigger('onLoading');
 		},
 
 		getViewport: function () {
@@ -646,7 +639,7 @@
 					y: W.scrollTop()
 				};
 
-			if (locked && locked.length) {
+			if (locked) {
 				rez.w = locked[0].clientWidth;
 				rez.h = locked[0].clientHeight;
 
@@ -662,11 +655,11 @@
 		// Unbind the keyboard / clicking actions
 		unbindEvents: function () {
 			if (F.wrap && isQuery(F.wrap)) {
-				F.wrap.unbind('.fb');
+				F.wrap.off('.fb');
 			}
 
-			D.unbind('.fb');
-			W.unbind('.fb');
+			D.off('.fb');
+			W.off('.fb');
 		},
 
 		bindEvents: function () {
@@ -679,12 +672,12 @@
 
 			// Changing document height on iOS devices triggers a 'resize' event,
 			// that can change document height... repeating infinitely
-			W.bind('orientationchange.fb' + (isTouch ? '' : ' resize.fb') + (current.autoCenter && !current.locked ? ' scroll.fb' : ''), F.update);
+			W.on('orientationchange.fb' + (isTouch ? '' : ' resize.fb') + (current.autoCenter && !current.locked ? ' scroll.fb' : ''), F.update);
 
 			keys = current.keys;
 
 			if (keys) {
-				D.bind('keydown.fb', function (e) {
+				D.on('keydown.fb', function (e) {
 					var code   = e.which || e.keyCode,
 						target = e.target || e.srcElement;
 
@@ -715,7 +708,7 @@
 			}
 
 			if ($.fn.mousewheel && current.mouseWheel) {
-				F.wrap.bind('mousewheel.fb', function (e, delta, deltaX, deltaY) {
+				F.wrap.on('mousewheel.fb', function (e, delta, deltaX, deltaY) {
 					var target = e.target || null,
 						parent = $(target),
 						canScroll = false;
@@ -748,22 +741,24 @@
 		trigger: function (event, o) {
 			var ret, obj = o || F.coming || F.current;
 
-			if (obj) {
-				if ($.isFunction( obj[event] )) {
-					ret = obj[event].apply(obj, Array.prototype.slice.call(arguments, 1));
-				}
+			if (!obj) {
+				return;
+			}
 
-				if (ret === false) {
-					return false;
-				}
+			if ($.isFunction( obj[event] )) {
+				ret = obj[event].apply(obj, Array.prototype.slice.call(arguments, 1));
+			}
 
-				if (obj.helpers) {
-					$.each(obj.helpers, function (helper, opts) {
-						if (opts && F.helpers[helper] && $.isFunction(F.helpers[helper][event])) {
-							F.helpers[helper][event]($.extend(true, {}, F.helpers[helper].defaults, opts), obj);
-						}
-					});
-				}
+			if (ret === false) {
+				return false;
+			}
+
+			if (obj.helpers) {
+				$.each(obj.helpers, function (helper, opts) {
+					if (opts && F.helpers[helper] && $.isFunction(F.helpers[helper][event])) {
+						F.helpers[helper][event]($.extend(true, {}, F.helpers[helper].defaults, opts), obj);
+					}
+				});
 			}
 
 			D.trigger(event);
@@ -998,7 +993,7 @@
 					.attr('src', coming.href);
 
 			// This helps IE
-			$(coming.wrap).bind('onReset', function () {
+			$(coming.wrap).on('onReset', function () {
 				try {
 					$(this).find('iframe').hide().attr('src', '//about:blank').end().empty();
 				} catch (e) {}
@@ -1012,7 +1007,7 @@
 
 					// iOS will lose scrolling if we resize
 					if (!isTouch) {
-						$(this).bind('load.fb', F.update);
+						$(this).on('load.fb', F.update);
 					}
 
 					// Without this trick:
@@ -1113,7 +1108,7 @@
 
 						content = content.show().detach();
 
-						current.wrap.bind('onReset', function () {
+						current.wrap.on('onReset', function () {
 							if ($(this).find(content).length) {
 								content.hide().replaceAll( content.data(placeholder) ).data(placeholder, false);
 							}
@@ -1122,7 +1117,7 @@
 				break;
 
 				case 'image':
-					content = current.tpl.image.replace(/\{href\}/g, href);
+					content = current.tpl.image.replace('{href}', href);
 				break;
 
 				case 'swf':
@@ -1222,7 +1217,7 @@
 			if (current.type === 'iframe') {
 				iframe = current.content;
 
-				if (current.autoHeight && iframe && iframe.data('ready') === 1) {
+				if (current.autoHeight && iframe.data('ready') === 1) {
 					try {
 						if (iframe[0].contentWindow.document.location) {
 							inner.width( origWidth ).height(9999);
@@ -1431,13 +1426,13 @@
 
 			F.isOpen = F.isOpened = true;
 
-			F.wrap.css('overflow', 'visible').addClass('fancybox-opened').hide().show(0);
+			F.wrap.css('overflow', 'visible').addClass('fancybox-opened');
 
 			F.update();
 
 			// Assign a click event
 			if ( current.closeClick || (current.nextClick && F.group.length > 1) ) {
-				F.inner.css('cursor', 'pointer').bind('click.fb', function(e) {
+				F.inner.css('cursor', 'pointer').on('click.fb', function(e) {
 					if (!$(e.target).is('a') && !$(e.target).parent().is('a')) {
 						e.preventDefault();
 
@@ -1448,7 +1443,7 @@
 
 			// Create a close button
 			if (current.closeBtn) {
-				$(current.tpl.closeBtn).appendTo(F.skin).bind('click.fb', function(e) {
+				$(current.tpl.closeBtn).appendTo(F.skin).on('click.fb', function(e) {
 					e.preventDefault();
 
 					F.close();
@@ -1458,11 +1453,11 @@
 			// Create navigation arrows
 			if (current.arrows && F.group.length > 1) {
 				if (current.loop || current.index > 0) {
-					$(current.tpl.prev).appendTo(F.outer).bind('click.fb', F.prev);
+					$(current.tpl.prev).appendTo(F.outer).on('click.fb', F.prev);
 				}
 
 				if (current.loop || current.index < F.group.length - 1) {
-					$(current.tpl.next).appendTo(F.outer).bind('click.fb', F.next);
+					$(current.tpl.next).appendTo(F.outer).on('click.fb', F.next);
 				}
 			}
 
@@ -1470,13 +1465,12 @@
 
 			// Stop the slideshow if this is the last item
 			if (!current.loop && current.index === current.group.length - 1) {
-
 				F.play( false );
 
 			} else if (F.opts.autoPlay && !F.player.isActive) {
 				F.opts.autoPlay = false;
 
-				F.play(true);
+				F.play();
 			}
 		},
 
@@ -1709,17 +1703,13 @@
 
 		// Public methods
 		create : function(opts) {
-			var parent;
-
 			opts = $.extend({}, this.defaults, opts);
 
 			if (this.overlay) {
 				this.close();
 			}
 
-			parent = F.coming ? F.coming.parent : opts.parent;
-
-			this.overlay = $('<div class="fancybox-overlay"></div>').appendTo( parent && parent.length ? parent : 'body' );
+			this.overlay = $('<div class="fancybox-overlay"></div>').appendTo( F.coming ? F.coming.parent : opts.parent );
 			this.fixed   = false;
 
 			if (opts.fixed && F.defaults.fixed) {
@@ -1735,20 +1725,20 @@
 			opts = $.extend({}, this.defaults, opts);
 
 			if (this.overlay) {
-				this.overlay.unbind('.overlay').width('auto').height('auto');
+				this.overlay.off('.overlay').width('auto').height('auto');
 
 			} else {
 				this.create(opts);
 			}
 
 			if (!this.fixed) {
-				W.bind('resize.overlay', $.proxy( this.update, this) );
+				W.on('resize.overlay', $.proxy( this.update, this) );
 
 				this.update();
 			}
 
 			if (opts.closeClick) {
-				this.overlay.bind('click.overlay', function(e) {
+				this.overlay.on('click.overlay', function(e) {
 					if ($(e.target).hasClass('fancybox-overlay')) {
 						if (F.isActive) {
 							F.close();
@@ -1765,14 +1755,19 @@
 		},
 
 		close : function() {
-			W.unbind('resize.overlay');
+			var scrollV, scrollH;
+
+			W.off('resize.overlay');
 
 			if (this.el.hasClass('fancybox-lock')) {
 				$('.fancybox-margin').removeClass('fancybox-margin');
 
+				scrollV = W.scrollTop();
+				scrollH = W.scrollLeft();
+
 				this.el.removeClass('fancybox-lock');
 
-				W.scrollTop( this.scrollV ).scrollLeft( this.scrollH );
+				W.scrollTop( scrollV ).scrollLeft( scrollH );
 			}
 
 			$('.fancybox-overlay').remove().hide();
@@ -1817,6 +1812,10 @@
 			}
 
 			if (opts.locked && this.fixed && obj.fixed) {
+				if (!overlay) {
+					this.margin = D.height() > W.height() ? $('html').css('margin-right').replace("px", "") : false;
+				}
+
 				obj.locked = this.overlay.append( obj.wrap );
 				obj.fixed  = false;
 			}
@@ -1827,21 +1826,23 @@
 		},
 
 		beforeShow : function(opts, obj) {
-			if (obj.locked && !this.el.hasClass('fancybox-lock')) {
-				if (this.fixPosition !== false) {
-					$('*:not(object)').filter(function(){
+			var scrollV, scrollH;
+
+			if (obj.locked) {
+				if (this.margin !== false) {
+					$('*').filter(function(){
 						return ($(this).css('position') === 'fixed' && !$(this).hasClass("fancybox-overlay") && !$(this).hasClass("fancybox-wrap") );
 					}).addClass('fancybox-margin');
+
+					this.el.addClass('fancybox-margin');
 				}
 
-				this.el.addClass('fancybox-margin');
-
-				this.scrollV = W.scrollTop();
-				this.scrollH = W.scrollLeft();
+				scrollV = W.scrollTop();
+				scrollH = W.scrollLeft();
 
 				this.el.addClass('fancybox-lock');
 
-				W.scrollTop( this.scrollV ).scrollLeft( this.scrollH );
+				W.scrollTop( scrollV ).scrollLeft( scrollH );
 			}
 
 			this.open(opts);
@@ -1856,6 +1857,7 @@
 		afterClose: function (opts) {
 			// Remove overlay if exists and fancyBox is not opening
 			// (e.g., it is not being open using afterClose callback)
+			//if (this.overlay && !F.isActive) {
 			if (this.overlay && !F.coming) {
 				this.overlay.fadeOut(opts.speedOut, $.proxy( this.close, this ));
 			}
@@ -1958,7 +1960,7 @@
 		index   = options.index || 0;
 
 		if (!selector || options.live === false) {
-			that.unbind('click.fb-start').bind('click.fb-start', run);
+			that.off('click.fb-start').on('click.fb-start', run);
 
 		} else {
 			D.undelegate(selector, 'click.fb-start').delegate(selector + ":not('.fancybox-item, .fancybox-nav')", 'click.fb-start', run);
